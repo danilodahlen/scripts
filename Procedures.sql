@@ -16,6 +16,7 @@ CREATE PROCEDURE [dbo].[Proc_GravarUsuario]
 	@tel_fixo			VARCHAR(12),
 	@tel_celular_ddd	VARCHAR(5),
 	@tel_celular		VARCHAR(12),
+	@sexo				VARCHAR(1),
 	@usuario_cuidador	BIT,
 	@endereco_cep		CHAR(8),	
 	@endereco_rua		VARCHAR(250),
@@ -55,6 +56,7 @@ BEGIN
 			 TEL_FIXO,			
 			 TEL_CELULAR_DDD,	
 			 TEL_CELULAR,		
+			 SEXO,
 			 USUARIO_CUIDADOR,	
 			 ENDERECO_CEP,		
 			 ENDERECO_RUA,		
@@ -77,6 +79,7 @@ BEGIN
 			 @tel_fixo,			
 			 @tel_celular_ddd,
 			 @tel_celular,		
+			 @sexo,
 			 @usuario_cuidador,	
 			 @endereco_cep,		
 			 @endereco_rua,		
@@ -98,6 +101,7 @@ BEGIN
 				   DATA_NASCIMENTO	= @data_nascimento	,
 				   TEL_FIXO			= @tel_fixo			,
 				   TEL_CELULAR		= @tel_celular		,
+				   SEXO				= @sexo,
 				   USUARIO_CUIDADOR	= @usuario_cuidador	,
 				   ENDERECO_CEP		= @endereco_cep		,
 				   ENDERECO_RUA		= @endereco_rua		,
@@ -139,6 +143,7 @@ ALTER PROCEDURE [dbo].[Proc_GravarCategoria]
 (	
 	@id_categoria		CHAR(4),
 	@nome_categoria		VARCHAR(100),
+	@marketplace		BIT,
 	@operacao			INT			
 )
 AS
@@ -154,11 +159,13 @@ BEGIN
 			INSERT TB_CATEGORIA
 			(ID_CATEGORIA,		
 			 NOME_CATEGORIA,		
+			 MARKETPLACE,
 			 DATA_ALTERACAO,		
 			 STATUS_CATEGORIA)
 			VALUES(
 			 @id_categoria,	
 			 @nome_categoria,
+			 @marketplace,
 			 GETDATE(),
 			 1)
 				
@@ -168,7 +175,8 @@ BEGIN
 			 UPDATE TB_CATEGORIA
 				SET DATA_ALTERACAO		= GETDATE(),
 					STATUS_CATEGORIA	= 1,
-					NOME_CATEGORIA		= @nome_categoria
+					NOME_CATEGORIA		= @nome_categoria,
+					MARKETPLACE			= @marketplace
 			  WHERE ID_CATEGORIA		= @id_categoria
 
 		END
@@ -196,50 +204,50 @@ GO
 CREATE PROCEDURE [dbo].[Proc_GravarTipoCategoria]
 (
 	@id_categoria		CHAR(4),
-	@id_tipo_pet		CHAR(5),
-	@nome_tipo_pet		VARCHAR(100),
+	@id_tipo			CHAR(5),
+	@nome_tipo			VARCHAR(100),
 	@operacao			INT				
 )
 AS
 BEGIN
 
 	BEGIN TRY
-		IF @operacao = 1 AND @id_tipo_pet IS NULL BEGIN
+		IF @operacao = 1 AND @id_tipo IS NULL BEGIN
 		
-			SELECT @id_tipo_pet = [dbo].[nfn__kernel_CriarIDs](MAX(ID_TIPO_PET),5)
-			 FROM  TB_TIPO_PET
+			SELECT @id_tipo = [dbo].[nfn__kernel_CriarIDs](MAX(ID_TIPO),5)
+			 FROM  TB_TIPO
 			 WHERE ID_CATEGORIA = @id_categoria
 
-			INSERT TB_TIPO_PET
+			INSERT TB_TIPO
 			(ID_CATEGORIA,		
-			 ID_TIPO_PET,		
-			 NOME_TIPO_PET,		
+			 ID_TIPO,		
+			 NOME_TIPO,		
 			 DATA_ALTERACAO,		
-			 STATUS_CATEGORIA)
+			 STATUS_TIPO)
 			 VALUES(
 			 @id_categoria,		
-			 @id_tipo_pet,		
-			 @nome_tipo_pet,
+			 @id_tipo,		
+			 @nome_tipo,
 			 GETDATE(),
 			 1)
 		END
-		IF @operacao = 2 AND @id_tipo_pet IS NOT NULL BEGIN
+		IF @operacao = 2 AND @id_tipo IS NOT NULL BEGIN
 			
-			UPDATE TB_TIPO_PET 
-			   SET NOME_TIPO_PET	= @nome_tipo_pet,
+			UPDATE TB_TIPO 
+			   SET NOME_TIPO		= @nome_tipo,
 				   DATA_ALTERACAO	= GETDATE(),
-				   STATUS_CATEGORIA	= 1   	      
-			WHERE ID_CATEGORIA = @id_categoria
-			 AND  ID_TIPO_PET  = @id_tipo_pet
+				   STATUS_TIPO		= 1   	      
+			WHERE ID_CATEGORIA		= @id_categoria
+			 AND  ID_TIPO			= @id_tipo
 
 		END
-		IF @operacao = 3 AND @id_tipo_pet IS NOT NULL BEGIN
+		IF @operacao = 3 AND @id_tipo IS NOT NULL BEGIN
 			
-			UPDATE TB_TIPO_PET 
+			UPDATE TB_TIPO 
 			   SET DATA_ALTERACAO	= GETDATE(),
-				   STATUS_CATEGORIA	= 0   	      
+				   STATUS_TIPO		= 0   	      
 			WHERE ID_CATEGORIA = @id_categoria
-			 AND  ID_TIPO_PET  = @id_tipo_pet
+			 AND  ID_TIPO  = @id_tipo
 
 		END
 	END TRY
@@ -248,7 +256,7 @@ BEGIN
 		GOTO FIM
 	END CATCH
 
-	SELECT '1' + @id_tipo_pet
+	SELECT '1' + @id_tipo
 	FIM:
 END
 
@@ -260,7 +268,7 @@ CREATE PROCEDURE [dbo].[Proc_GravarPetsUsuarios]
 	@id_pet					CHAR(5),		
 	@nome_pet				VARCHAR(250),	
 	@id_categoria			CHAR(4),	
-	@id_tipo_pet			CHAR(5),
+	@id_tipo				CHAR(5),
 	@doacao					BIT,
 	@desaparecido			BIT,
 	@observacoes			VARCHAR(MAX),
@@ -274,25 +282,25 @@ BEGIN
 
 			SELECT @id_pet = [dbo].[nfn__kernel_CriarIDs](MAX(ID_PET),5)
 			 FROM  TB_USUARIOS_PET
-			 WHERE ID_USUARIO_AVALIADO = @id_usuario_avaliado
+			 WHERE ID_USUARIO = @id_usuario
 			
 			INSERT TB_USUARIOS_PET
-			(ID_USUARIO_AVALIADO,
+			(ID_USUARIO,
 			 ID_PET,				
 			 NOME_PET,			
 			 ID_CATEGORIA,		
-			 ID_TIPO_PET,		
+			 ID_TIPO,		
 			 DOACAO,					
 			 DESAPARECIDO,			
 			 OBSERVACOES,			
 			 STATUS_PET,			
 			 DATA_ALTERACAO)
 			VALUES(
-			 @id_usuario_avaliado,
+			 @id_usuario,
 			 @id_pet,				
 			 @nome_pet,			
 			 @id_categoria,		
-			 @id_tipo_pet,		
+			 @id_tipo,		
 			 @doacao,					
 			 @desaparecido,			
 			 @observacoes,			
@@ -305,13 +313,13 @@ BEGIN
 			UPDATE TB_USUARIOS_PET
 			   SET NOME_PET			= @nome_pet		,	
 			       ID_CATEGORIA		= @id_categoria	,	
-			       ID_TIPO_PET		= @id_tipo_pet	,	
+			       ID_TIPO			= @id_tipo		,	
 			       DOACAO			= @doacao		,							
 				   DESAPARECIDO		= @desaparecido ,			
 				   OBSERVACOES		= @observacoes	,			
 			       STATUS_PET		= 1				,	
 			       DATA_ALTERACAO	= GETDATE()	
-			 WHERE ID_USUARIO_AVALIADO = @id_usuario_avaliado
+			 WHERE ID_USUARIO		   = @id_usuario
 			   AND ID_PET			   = @id_pet
 
 		END 
@@ -320,7 +328,7 @@ BEGIN
 			UPDATE TB_USUARIOS_PET
 				   STATUS_PET			= 0,	
 			       DATA_ALTERACAO		= GETDATE()
-			 WHERE ID_USUARIO_AVALIADO  = @id_usuario_avaliado
+			 WHERE ID_USUARIO			= @id_usuario
 			   AND ID_PET			    = @id_pet
 
 		END
@@ -740,17 +748,17 @@ BEGIN
 		   TB_USUARIOS_PET.ID_PET,			
 		   TB_USUARIOS_PET.NOME_PET,		
 		   TB_USUARIOS_PET.ID_CATEGORIA,	
-		   TB_USUARIOS_PET.ID_TIPO_PET,	
+		   TB_USUARIOS_PET.ID_TIPO,	
 		   TB_USUARIOS_PET.DOACAO,			
 		   TB_USUARIOS_PET.OBSERVACOES,
 		   TB_CATEGORIA.NOME_CATEGORIA,
-		   TB_TIPO_PET.NOME_TIPO_PET
+		   TB_TIPO.NOME_TIPO
 	  FROM TB_USUARIOS_PET
 INNER JOIN TB_CATEGORIA
 		ON TB_CATEGORIA.ID_CATEGORIA = TB_USUARIOS_PET.ID_CATEGORIA
-INNER JOIN TB_TIPO_PET
-		ON TB_TIPO_PET.ID_CATEGORIA	 = TB_USUARIOS_PET.ID_CATEGORIA
-	   AND TB_TIPO_PET.ID_TIPO_PET	 = TB_USUARIOS_PET.ID_TIPO_PET
+INNER JOIN TB_TIPO
+		ON TB_TIPO.ID_CATEGORIA	 = TB_USUARIOS_PET.ID_CATEGORIA
+	   AND TB_TIPO.ID_TIPO	 = TB_USUARIOS_PET.ID_TIPO
 	 WHERE DOACAO = 1				
 
 END
@@ -769,17 +777,17 @@ BEGIN
 		   TB_USUARIOS_PET.ID_PET,			
 		   TB_USUARIOS_PET.NOME_PET,		
 		   TB_USUARIOS_PET.ID_CATEGORIA,	
-		   TB_USUARIOS_PET.ID_TIPO_PET,	
+		   TB_USUARIOS_PET.ID_TIPO,	
 		   TB_USUARIOS_PET.DESAPARECIDO,			
 		   TB_USUARIOS_PET.OBSERVACOES,
 		   TB_CATEGORIA.NOME_CATEGORIA,
-		   TB_TIPO_PET.NOME_TIPO_PET
+		   TB_TIPO.NOME_TIPO
 	  FROM TB_USUARIOS_PET
 INNER JOIN TB_CATEGORIA
 		ON TB_CATEGORIA.ID_CATEGORIA = TB_USUARIOS_PET.ID_CATEGORIA
-INNER JOIN TB_TIPO_PET
-		ON TB_TIPO_PET.ID_CATEGORIA	 = TB_USUARIOS_PET.ID_CATEGORIA
-	   AND TB_TIPO_PET.ID_TIPO_PET	 = TB_USUARIOS_PET.ID_TIPO_PET
+INNER JOIN TB_TIPO
+		ON TB_TIPO.ID_CATEGORIA	 = TB_USUARIOS_PET.ID_CATEGORIA
+	   AND TB_TIPO.ID_TIPO	 = TB_USUARIOS_PET.ID_TIPO
 	 WHERE DESAPARECIDO = 1				
 
 END
@@ -864,6 +872,32 @@ INNER JOIN TB_USUARIOS AS TB_AUTOR_CURTIDA
 END
 
 GO
+
+
+CREATE FUNCTION [dbo].[nfn__kernel_CriarIDs]  
+(  
+    @parametro  VARCHAR(MAX),  
+    @qtde_zeros INT = 0  
+)  
+RETURNS VARCHAR(MAX)  
+AS  
+BEGIN  
+    DECLARE @return VARCHAR(MAX) ,  
+            @numero INT  
+      
+    SET @return = @parametro  
+      
+    IF @parametro IS NULL OR @parametro = ''  
+        SET @return = '0'  
+      
+    SET @numero = CONVERT( INT , @return ) + 1  
+    SET @return = dbo.nfn__kernel_ZerosEsquerda( CONVERT( VARCHAR(MAX) , @numero ) , @qtde_zeros )  
+  
+  
+ RETURN @return  
+END  
+  
+
 
 
 
